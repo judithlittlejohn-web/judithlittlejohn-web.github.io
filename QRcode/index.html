@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Code Generator with Sunglasses Icon</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --border: #d1d5db;
+      --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background: radial-gradient(circle at top, #e0ecff 0%, var(--bg) 42%, #eef2f7 100%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    main {
+      width: min(960px, 100%);
+      background: var(--card);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: clamp(24px, 4vw, 44px);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 36px;
+      align-items: center;
+    }
+
+    .intro h1 {
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      line-height: 1;
+      margin: 0 0 16px;
+      letter-spacing: -0.05em;
+    }
+
+    .intro p {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      color: var(--muted);
+      margin: 0 0 28px;
+      max-width: 42rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      font: inherit;
+      color: var(--text);
+      background: #fbfdff;
+      outline: none;
+    }
+
+    textarea:focus,
+    input[type="color"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+    }
+
+    .field-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .color-control {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 10px 12px;
+    }
+
+    input[type="color"] {
+      width: 48px;
+      height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 3px;
+      background: white;
+      cursor: pointer;
+    }
+
+    .color-value {
+      min-width: 7ch;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-weight: 700;
+      font-size: 0.98rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+    }
+
+    .primary:hover {
+      background: var(--accent-dark);
+    }
+
+    .secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .preview-card {
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+      border: 1px solid #e5e7eb;
+      border-radius: 26px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .qr-wrap {
+      position: relative;
+      width: min(320px, 100%);
+      aspect-ratio: 1 / 1;
+      margin: 0 auto 20px;
+      display: grid;
+      place-items: center;
+      background: white;
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: inset 0 0 0 1px #e5e7eb;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+    }
+
+    .hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .status {
+      min-height: 1.5em;
+      margin-top: 12px;
+      color: #b91c1c;
+      font-weight: 700;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        align-items: flex-start;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <h1 id="page-title">QR Code Generator</h1>
+      <p>
+        Enter a URL, message, or other text. Choose a color for the QR code, then generate a code with a small sunglasses icon in the center.
+      </p>
+
+      <label for="qrText">Text or URL</label>
+      <textarea id="qrText" spellcheck="false">https://www.example.com</textarea>
+
+      <div class="field-row">
+        <label for="qrColor">QR code color</label>
+        <div class="color-control">
+          <input id="qrColor" type="color" value="#111827" aria-label="Choose QR code color" />
+          <span class="color-value" id="colorValue">#111827</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="primary" id="generateBtn" type="button">Generate QR Code</button>
+        <button class="secondary" id="downloadBtn" type="button">Download PNG</button>
+      </div>
+
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="preview-card" aria-label="Generated QR code preview">
+      <div class="qr-wrap">
+        <canvas id="qrCanvas" width="900" height="900" aria-label="Generated QR code with sunglasses icon"></canvas>
+      </div>
+      <p class="hint">
+        Tip: QR codes scan best when the color is dark enough against the white background.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const qrText = document.getElementById("qrText");
+    const qrColor = document.getElementById("qrColor");
+    const colorValue = document.getElementById("colorValue");
+    const generateBtn = document.getElementById("generateBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const statusEl = document.getElementById("status");
+    const canvas = document.getElementById("qrCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const API_BASE = "https://api.qrserver.com/v1/create-qr-code/";
+
+    function hexWithoutHash(hex) {
+      return hex.replace("#", "");
+    }
+
+    function updateColorDisplay() {
+      colorValue.textContent = qrColor.value.toUpperCase();
+    }
+
+    async function generateQRCode() {
+      const value = qrText.value.trim();
+      const selectedColor = hexWithoutHash(qrColor.value);
+      statusEl.textContent = "";
+      updateColorDisplay();
+
+      if (!value) {
+        statusEl.textContent = "Enter text or a URL first.";
+        return;
+      }
+
+      generateBtn.disabled = true;
+      generateBtn.textContent = "Generating...";
+
+      try {
+        const qrImage = new Image();
+        qrImage.crossOrigin = "anonymous";
+        const url = `${API_BASE}?size=900x900&ecc=H&margin=20&color=${selectedColor}&bgcolor=FFFFFF&data=${encodeURIComponent(value)}`;
+
+        await new Promise((resolve, reject) => {
+          qrImage.onload = resolve;
+          qrImage.onerror = reject;
+          qrImage.src = url;
+        });
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(qrImage, 0, 0, canvas.width, canvas.height);
+        drawSunglassesIcon();
+      } catch (error) {
+        statusEl.textContent = "The QR code could not be generated. Check your connection and try again.";
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = "Generate QR Code";
+      }
+    }
+
+    function drawSunglassesIcon() {
+      const center = canvas.width / 2;
+      const iconSize = canvas.width * 0.22;
+      const lensWidth = iconSize * 0.38;
+      const lensHeight = iconSize * 0.27;
+      const gap = iconSize * 0.1;
+      const y = center - lensHeight / 2;
+      const leftX = center - gap / 2 - lensWidth;
+      const rightX = center + gap / 2;
+      const radius = 28;
+
+      // White badge behind the icon keeps the sunglasses readable without overwhelming the QR code.
+      ctx.save();
+      ctx.fillStyle = "#ffffff";
+      roundedRect(center - iconSize / 2, center - iconSize * 0.33, iconSize, iconSize * 0.66, 34);
+      ctx.fill();
+
+      // Subtle outline for the badge.
+      ctx.strokeStyle = "#111827";
+      ctx.lineWidth = 8;
+      ctx.stroke();
+
+      // Lenses.
+      ctx.fillStyle = "#111827";
+      roundedRect(leftX, y, lensWidth, lensHeight, radius);
+      ctx.fill();
+      roundedRect(rightX, y, lensWidth, lensHeight, radius);
+      ctx.fill();
+
+      // Bridge.
+      ctx.beginPath();
+      ctx.lineWidth = 14;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#111827";
+      ctx.moveTo(leftX + lensWidth, center - lensHeight * 0.1);
+      ctx.quadraticCurveTo(center, center - lensHeight * 0.28, rightX, center - lensHeight * 0.1);
+      ctx.stroke();
+
+      // Arms.
+      ctx.beginPath();
+      ctx.lineWidth = 12;
+      ctx.moveTo(leftX, center - lensHeight * 0.1);
+      ctx.lineTo(leftX - iconSize * 0.12, center - lensHeight * 0.24);
+      ctx.moveTo(rightX + lensWidth, center - lensHeight * 0.1);
+      ctx.lineTo(rightX + lensWidth + iconSize * 0.12, center - lensHeight * 0.24);
+      ctx.stroke();
+
+      // Highlights.
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = "#ffffff";
+      roundedRect(leftX + lensWidth * 0.16, y + lensHeight * 0.18, lensWidth * 0.3, lensHeight * 0.12, 8);
+      ctx.fill();
+      roundedRect(rightX + lensWidth * 0.16, y + lensHeight * 0.18, lensWidth * 0.3, lensHeight * 0.12, 8);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function roundedRect(x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + width - r, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+      ctx.lineTo(x + width, y + height - r);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+      ctx.lineTo(x + r, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function downloadPNG() {
+      const link = document.createElement("a");
+      link.download = "qr-code-with-sunglasses.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    generateBtn.addEventListener("click", generateQRCode);
+    downloadBtn.addEventListener("click", downloadPNG);
+    qrColor.addEventListener("input", () => {
+      updateColorDisplay();
+      generateQRCode();
+    });
+    qrText.addEventListener("keydown", (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        generateQRCode();
+      }
+    });
+
+    updateColorDisplay();
+    generateQRCode();
+  </script>
+</body>
+</html>
