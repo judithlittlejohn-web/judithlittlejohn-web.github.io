@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confetti Button</title>
+  <style>
+    :root {
+      --bg: #f7f5ff;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #4b5563;
+      --primary: #5b21b6;
+      --primary-hover: #4c1d95;
+      --focus: #111827;
+      --shadow: 0 24px 60px rgba(31, 41, 55, 0.18);
+      --radius: 1.5rem;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(91, 33, 182, 0.16), transparent 36rem),
+        radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.16), transparent 34rem),
+        var(--bg);
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      overflow-x: hidden;
+    }
+
+    main {
+      width: min(100%, 42rem);
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(1.5rem, 5vw, 3rem);
+      text-align: center;
+      border: 1px solid rgba(31, 41, 55, 0.08);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 7vw, 4rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    p {
+      margin: 1rem auto 0;
+      max-width: 34rem;
+      color: var(--muted);
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      line-height: 1.6;
+    }
+
+    .button-row {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      min-width: 12rem;
+      border: 0;
+      border-radius: 999px;
+      padding: 1rem 1.4rem;
+      font: inherit;
+      font-weight: 700;
+      color: #ffffff;
+      background: var(--primary);
+      cursor: pointer;
+      box-shadow: 0 12px 24px rgba(91, 33, 182, 0.25);
+      transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 16px 30px rgba(91, 33, 182, 0.28);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 8px 18px rgba(91, 33, 182, 0.2);
+    }
+
+    button:focus-visible {
+      outline: 4px solid var(--focus);
+      outline-offset: 4px;
+    }
+
+    .status {
+      min-height: 1.5rem;
+      margin-top: 1.5rem;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+  <main aria-labelledby="app-title">
+    <section class="card" aria-describedby="app-description">
+      <h1 id="app-title">Confetti Button</h1>
+      <p id="app-description">Press the button to launch a quick burst of colorful confetti.</p>
+
+      <div class="button-row">
+        <button id="confetti-button" type="button" aria-label="Throw confetti">
+          Throw Confetti
+        </button>
+      </div>
+
+      <p id="status-message" class="status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script>
+    /*****************************************************************
+     * TEACHER-EDITABLE CONTENT AND SETTINGS
+     * Update this object to change the words, colors, and behavior.
+     *****************************************************************/
+    const APP_CONTENT = {
+      title: "Confetti Button",
+      description: "Press the button to launch a quick burst of colorful confetti.",
+      buttonText: "Throw Confetti",
+      buttonAriaLabel: "Throw confetti",
+      statusMessage: "Confetti launched!",
+      confettiColors: ["#5b21b6", "#0ea5e9", "#f59e0b", "#10b981", "#ef4444", "#ec4899"],
+      particleCount: 150,
+      animationDurationMs: 1800
+    };
+
+    const title = document.getElementById("app-title");
+    const description = document.getElementById("app-description");
+    const button = document.getElementById("confetti-button");
+    const statusMessage = document.getElementById("status-message");
+    const canvas = document.getElementById("confetti-canvas");
+    const ctx = canvas.getContext("2d");
+
+    let confettiPieces = [];
+    let animationFrameId = null;
+    let animationStartTime = 0;
+
+    function applyEditableContent() {
+      title.textContent = APP_CONTENT.title;
+      description.textContent = APP_CONTENT.description;
+      button.textContent = APP_CONTENT.buttonText;
+      button.setAttribute("aria-label", APP_CONTENT.buttonAriaLabel);
+    }
+
+    function resizeCanvas() {
+      const pixelRatio = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(window.innerWidth * pixelRatio);
+      canvas.height = Math.floor(window.innerHeight * pixelRatio);
+      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    }
+
+    function randomBetween(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function createConfettiPiece(originX, originY) {
+      const angle = randomBetween(-Math.PI, 0);
+      const speed = randomBetween(5, 14);
+
+      return {
+        x: originX,
+        y: originY,
+        width: randomBetween(7, 13),
+        height: randomBetween(8, 16),
+        color: APP_CONTENT.confettiColors[Math.floor(Math.random() * APP_CONTENT.confettiColors.length)],
+        velocityX: Math.cos(angle) * speed,
+        velocityY: Math.sin(angle) * speed,
+        gravity: randomBetween(0.18, 0.38),
+        drag: randomBetween(0.985, 0.995),
+        rotation: randomBetween(0, Math.PI * 2),
+        rotationSpeed: randomBetween(-0.25, 0.25),
+        opacity: 1
+      };
+    }
+
+    function createConfettiBurst() {
+      const buttonRect = button.getBoundingClientRect();
+      const originX = buttonRect.left + buttonRect.width / 2;
+      const originY = buttonRect.top + buttonRect.height / 2;
+
+      confettiPieces = Array.from({ length: APP_CONTENT.particleCount }, function () {
+        return createConfettiPiece(originX, originY);
+      });
+    }
+
+    function drawConfettiPiece(piece) {
+      ctx.save();
+      ctx.globalAlpha = piece.opacity;
+      ctx.translate(piece.x, piece.y);
+      ctx.rotate(piece.rotation);
+      ctx.fillStyle = piece.color;
+      ctx.fillRect(-piece.width / 2, -piece.height / 2, piece.width, piece.height);
+      ctx.restore();
+    }
+
+    function updateConfettiPiece(piece, elapsedRatio) {
+      piece.velocityX *= piece.drag;
+      piece.velocityY = piece.velocityY * piece.drag + piece.gravity;
+      piece.x += piece.velocityX;
+      piece.y += piece.velocityY;
+      piece.rotation += piece.rotationSpeed;
+      piece.opacity = Math.max(0, 1 - elapsedRatio);
+    }
+
+    function animateConfetti(timestamp) {
+      if (!animationStartTime) {
+        animationStartTime = timestamp;
+      }
+
+      const elapsed = timestamp - animationStartTime;
+      const elapsedRatio = elapsed / APP_CONTENT.animationDurationMs;
+
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      confettiPieces.forEach(function (piece) {
+        updateConfettiPiece(piece, elapsedRatio);
+        drawConfettiPiece(piece);
+      });
+
+      confettiPieces = confettiPieces.filter(function (piece) {
+        return piece.opacity > 0 && piece.y < window.innerHeight + 40;
+      });
+
+      if (elapsed < APP_CONTENT.animationDurationMs && confettiPieces.length > 0) {
+        animationFrameId = requestAnimationFrame(animateConfetti);
+      } else {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        confettiPieces = [];
+        animationFrameId = null;
+        animationStartTime = 0;
+      }
+    }
+
+    function launchConfetti() {
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      statusMessage.textContent = APP_CONTENT.statusMessage;
+
+      if (prefersReducedMotion) {
+        return;
+      }
+
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+
+      animationStartTime = 0;
+      createConfettiBurst();
+      animationFrameId = requestAnimationFrame(animateConfetti);
+    }
+
+    applyEditableContent();
+    resizeCanvas();
+
+    button.addEventListener("click", launchConfetti);
+    window.addEventListener("resize", resizeCanvas);
+  </script>
+</body>
+</html>
